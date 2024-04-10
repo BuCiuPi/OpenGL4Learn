@@ -140,6 +140,7 @@
   <ItemGroup>
     <ClInclude Include="GLLog.h" />
     <ClInclude Include="Shader.h" />
+    <ClInclude Include="TransformationMatrix.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="fragmentShader.glsl" />

@@ -2,19 +2,25 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <assert.h>
+#include <math.h>
 
 #include "GLLog.h"
 #include "Shader.h"
+#include "TransformationMatrix.h"
 
 using namespace std;
 
 int g_gl_width = 640;
 int g_gl_height = 480;
 
+float speed = 1.0f;
+double deltaTime = 0.0f;
+
 void glfw_error_callback(int error, const char* description);
 void glfw_window_size_callback(GLFWwindow* window, int with, int height);
 
 void _update_fps_counter(GLFWwindow* window);
+void _update_delta_time();
 void GetWindowInput(GLFWwindow* window);
 void GetWindowFullScreen();
 bool CheckShaderLog(GLuint shader_index);
@@ -91,7 +97,7 @@ int main(void)
 	glEnableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_colours);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-	
+
 	string vShader = ShaderUtility::GetShader("vertexShader.glsl");
 	const char* vertex_shader = vShader.c_str();
 	cout << "Vertext Shader: " << endl << vShader << endl;
@@ -118,15 +124,52 @@ int main(void)
 	CheckShaderProgrammeLog(shader_programme);
 	print_all_programme_log(shader_programme);
 
+	float position[] =
+	{
+		.5f, 0, 0
+	};
+
+	float scale[] =
+	{
+		1, 1, 1
+	};
+
+	float last_position = 0.0f;
+	float last_scale = 0.0f;
 
 
 	while (!glfwWindowShouldClose(window))
 	{
 		_update_fps_counter(window);
+		_update_delta_time();
+
+		float* model = NewMatrix();
+
+		if (fabs(last_position) > 0.5f)
+		{
+			last_position = min(1.0f, max(last_position, -1.0f));
+			speed = -speed;
+		}
+
+		position[0] = deltaTime * speed + last_position;
+		MatrixTranslation(model, position);
+		last_position = position[0];
+
+		scale[0] = deltaTime * speed + last_position;
+		scale[1] = deltaTime * speed + last_position;
+
+		MatrixScaling(model, scale);
+
+
+
 		// wipe the drawing surface clear
 		glClearColor(.5f, .5f, .5f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		glUseProgram(shader_programme);
+
+		glUniformMatrix4fv(glGetUniformLocation(shader_programme, "model"), 1, GL_TRUE, model);
+
 		glBindVertexArray(vao);
 		// draw points 0-3 from the currently bound VAO with current in-use shader
 		glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -159,19 +202,27 @@ void _update_fps_counter(GLFWwindow* window)
 	static double previous_seconds = glfwGetTime();
 	static int frame_count;
 	double current_seconds = glfwGetTime();
-	double elapsed_seconds = current_seconds - previous_seconds;
+	double elapsed_second = current_seconds - previous_seconds;
 
-	if (elapsed_seconds > 0.25)
+	if (elapsed_second > 0.25)
 	{
 		previous_seconds = current_seconds;
-		double fps = (double)frame_count / elapsed_seconds;
+		double fps = (double)frame_count / elapsed_second;
 		char tmp[128];
-		sprintf_s(tmp, "opengl @ fps: %.2f", fps);
+		sprintf_s(tmp, "opengl @ fps: %.2f - %f", fps, elapsed_second);
 		glfwSetWindowTitle(window, tmp);
 		frame_count = 0;
 	}
 
 	frame_count++;
+}
+
+void _update_delta_time()
+{
+	static double previous_seconds = glfwGetTime();
+	double current_seconds = glfwGetTime();
+	deltaTime = current_seconds - previous_seconds;
+	previous_seconds = current_seconds;
 }
 
 void GetWindowInput(GLFWwindow* window)
