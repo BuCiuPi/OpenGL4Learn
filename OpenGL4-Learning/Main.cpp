@@ -8,6 +8,8 @@
 #include "Shader.h"
 #include "TransformationMatrix.h"
 
+#define M_PI 3.141592653589793
+
 using namespace std;
 
 int g_gl_width = 640;
@@ -63,8 +65,8 @@ int main(void)
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
-	glFrontFace(GL_CW);
+	glCullFace(GL_FRONT);
+	glFrontFace(GL_CCW);
 
 	GLfloat points[] = {
 		 0.0f,  0.5f,  0.0f,
@@ -126,7 +128,7 @@ int main(void)
 
 	float position[] =
 	{
-		.5f, 0, 0
+		0, 0, 0
 	};
 
 	float scale[] =
@@ -134,8 +136,37 @@ int main(void)
 		1, 1, 1
 	};
 
+	float rotation[] =
+	{
+		0, 0, 0
+	};
+
 	float last_position = 0.0f;
 	float last_scale = 0.0f;
+	float last_rotation = 0.0f;
+
+
+	float* matrixA = new float[16]
+		{
+			1.0f, 2.0f, 3.0f, 4.0f,
+				2.0f, 1.0f, 2.0f, 3.0f,
+				3.0f, 2.0f, 1.0f, 2.0f,
+				4.0f, 3.0f, 2.0f, 1.0f,
+		};
+	float* matrixB = new float[16]
+		{
+			4.0f, 3.0f, 2.0f, 1.0f,
+				3.0f, 4.0f, 3.0f, 2.0f,
+				2.0f, 3.0f, 4.0f, 3.0f,
+				1.0f, 2.0f, 3.0f, 4.0f,
+		};
+
+	float* matC =	mul_mat4(matrixA, matrixB);
+	for (int i = 0; i < 16; i++)
+	{
+		std::cout << matC[i] << " | ";
+	}
+
 
 
 	while (!glfwWindowShouldClose(window))
@@ -145,22 +176,30 @@ int main(void)
 
 		float* model = NewMatrix();
 
-		if (fabs(last_position) > 0.5f)
+		//if (fabs(last_position) > 0.5f)
+		//{
+		//	last_position = min(1.0f, max(last_position, -1.0f));
+		//	speed = -speed;
+		//}
+
+		//position[0] = deltaTime * speed + last_position;
+		//model =	MatrixTranslation(model, position);
+		//last_position = position[0];
+
+		//scale[0] = deltaTime * speed + last_position;
+		//scale[1] = deltaTime * speed + last_position;
+
+		//model = MatrixScaling(model, scale);
+		
+		rotation[0] += deltaTime * speed * 100 ;
+		if (rotation[0] > 360)
 		{
-			last_position = min(1.0f, max(last_position, -1.0f));
-			speed = -speed;
+			rotation[0] = 0;
 		}
-
-		position[0] = deltaTime * speed + last_position;
-		MatrixTranslation(model, position);
-		last_position = position[0];
-
-		scale[0] = deltaTime * speed + last_position;
-		scale[1] = deltaTime * speed + last_position;
-
-		MatrixScaling(model, scale);
-
-
+		
+		model = MatrixRotateX(model, rotation[0] * (M_PI/180));
+		//model = MatrixRotateY(model, rotation[0] * (M_PI/180));
+		//model = MatrixRotateZ(model, rotation[0] * (M_PI/180));
 
 		// wipe the drawing surface clear
 		glClearColor(.5f, .5f, .5f, 1.0f);

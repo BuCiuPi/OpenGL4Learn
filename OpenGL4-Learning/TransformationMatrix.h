@@ -14,8 +14,10 @@ const float indentityMatrix[]
 };
 
 
-void mul_mat4(float* mat, float* mat2)
+float* mul_mat4(float* mat, float* mat2)
 {
+	float* returnedMatrix = new float[16];
+
 	for (int i = 0; i < 4; i++)
 	{
 		for (int j = 0; j < 4; j++)
@@ -23,20 +25,16 @@ void mul_mat4(float* mat, float* mat2)
 			float value = 0;
 			for (int pos = 0; pos < 4; pos++)
 			{
-				float additionValue = mat[i * 4 + pos] * mat2[j + pos * 4];
+				float additionValue =  mat[i * 4 + pos] * mat2[j + pos * 4] ;
 				value += additionValue;
 			}
-			mat[i * 4 + j] = value;
+			returnedMatrix[i * 4 + j] = value; // set value for new mat
 		}
 	}
-	for (int i = 0; i < 16; i++)
-	{
-		std::cout << mat[i] << " | ";
-	}
-	std::cout << std::endl;
+	return returnedMatrix;
 }
 
-void MatrixTranslation(float* matrix, float position[3])
+float* MatrixTranslation(float* matrix, float position[3])
 {
 	float* returnedMatrix = new float[16];
 	for (int i = 0; i < 16; i++)
@@ -61,11 +59,11 @@ void MatrixTranslation(float* matrix, float position[3])
 
 		returnedMatrix[i] = indentityMatrix[i];
 	}
-	
-	mul_mat4(matrix, returnedMatrix);
+
+	return mul_mat4(matrix, returnedMatrix);
 }
 
-void MatrixScaling(float* matrix, float scale[3])
+float* MatrixScaling(float* matrix, float scale[3])
 {
 
 	float* returnedMatrix = new float[16];
@@ -91,17 +89,56 @@ void MatrixScaling(float* matrix, float scale[3])
 
 		returnedMatrix[i] = indentityMatrix[i];
 	}
-	mul_mat4(matrix, returnedMatrix);
+	return mul_mat4(matrix, returnedMatrix);
 }
+float* MatrixRotateX(float* matrix, float value)
+{
+
+	float* multipleMatrix = new float[16]
+		{
+			1.0f, 0.0f, 0.0f, 0.0f,
+				0.0f, cos(value), -sin(value), 0.0f,
+				0.0f, sin(value), cos(value), 0.0f,
+				0.0f, 0.0f, 0.0f, 1.0f,
+		};
+	return mul_mat4(matrix, multipleMatrix);
+}
+
+float* MatrixRotateY(float* matrix, float value)
+{
+
+	float* multipleMatrix = new float[16]
+		{
+			cos(value), 0.0f, sin(value), 0.0f,
+				0.0f, 1.0f, 0.0f, 0.0f,
+				-sin(value), 0.0f, cos(value), 0.0f,
+				0.0f, 0.0f, 0.0f, 1.0f,
+		};
+	return mul_mat4(matrix, multipleMatrix);
+}
+
+float* MatrixRotateZ(float* matrix, float value)
+{
+
+	float* multipleMatrix = new float[16]
+		{
+			cos(value), -sin(value), 0.0f, 0.0f,
+				sin(value), cos(value), 0.0f, 0.0f,
+				0.0f, 0.0f, 1.0f, 0.0f,
+				0.0f, 0.0f, 0.0f, 1.0f,
+		};
+	return mul_mat4(matrix, multipleMatrix);
+}
+
 
 float* NewMatrix() {
 	float* indentityMatrix = new float[16]
-	{
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f,
-	};
+		{
+			1.0f, 0.0f, 0.0f, 0.0f,
+				0.0f, 1.0f, 0.0f, 0.0f,
+				0.0f, 0.0f, 1.0f, 0.0f,
+				0.0f, 0.0f, 0.0f, 1.0f,
+		};
 	return indentityMatrix;
 }
 
