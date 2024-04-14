@@ -6,14 +6,17 @@
 
 #include "GLLog.h"
 #include "Shader.h"
-#include "TransformationMatrix.h"
 
-#define M_PI 3.141592653589793
+#include "TransformationMatrix.h"
+#include "Camera.h"
+
 
 using namespace std;
 
 int g_gl_width = 640;
 int g_gl_height = 480;
+
+Camera camera;
 
 float speed = 1.0f;
 double deltaTime = 0.0f;
@@ -64,15 +67,18 @@ int main(void)
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_FRONT);
-	glFrontFace(GL_CCW);
+	//glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CW);
+
+	camera.SetAspect(g_gl_width, g_gl_height);
 
 	GLfloat points[] = {
 		 0.0f,  0.5f,  0.0f,
 		 0.5f, -0.5f,  0.0f,
 		-0.5f, -0.5f,  0.0f
 	};
+
 	GLfloat colours[] = {
 		 1.0f, 0.0f,  0.0f,
 		 0.0f, 1.0f,  0.0f,
@@ -145,36 +151,16 @@ int main(void)
 	float last_scale = 0.0f;
 	float last_rotation = 0.0f;
 
-
-	float* matrixA = new float[16]
-		{
-			1.0f, 2.0f, 3.0f, 4.0f,
-				2.0f, 1.0f, 2.0f, 3.0f,
-				3.0f, 2.0f, 1.0f, 2.0f,
-				4.0f, 3.0f, 2.0f, 1.0f,
-		};
-	float* matrixB = new float[16]
-		{
-			4.0f, 3.0f, 2.0f, 1.0f,
-				3.0f, 4.0f, 3.0f, 2.0f,
-				2.0f, 3.0f, 4.0f, 3.0f,
-				1.0f, 2.0f, 3.0f, 4.0f,
-		};
-
-	float* matC =	mul_mat4(matrixA, matrixB);
-	for (int i = 0; i < 16; i++)
-	{
-		std::cout << matC[i] << " | ";
-	}
-
-
-
 	while (!glfwWindowShouldClose(window))
 	{
 		_update_fps_counter(window);
 		_update_delta_time();
 
+		GetWindowInput(window);
+
 		float* model = NewMatrix();
+		float* view = camera.GetViewMatrix();
+		float* projection = camera.GetProjectionMatrix();
 
 		//if (fabs(last_position) > 0.5f)
 		//{
@@ -183,23 +169,26 @@ int main(void)
 		//}
 
 		//position[0] = deltaTime * speed + last_position;
-		//model =	MatrixTranslation(model, position);
+		////model = MatrixTranslation(model, position);
+
 		//last_position = position[0];
+
 
 		//scale[0] = deltaTime * speed + last_position;
 		//scale[1] = deltaTime * speed + last_position;
 
 		//model = MatrixScaling(model, scale);
-		
-		rotation[0] += deltaTime * speed * 100 ;
+
+
+		rotation[0] += deltaTime * speed * 100;
 		if (rotation[0] > 360)
 		{
 			rotation[0] = 0;
 		}
-		
-		model = MatrixRotateX(model, rotation[0] * (M_PI/180));
-		//model = MatrixRotateY(model, rotation[0] * (M_PI/180));
-		//model = MatrixRotateZ(model, rotation[0] * (M_PI/180));
+
+		//model = MatrixRotateX(model, ToRadian(rotation[0]));
+		//model = MatrixRotateY(model, ToRadian(rotation[0]));
+		//model = MatrixRotateZ(model, ToRadian(rotation[0]));
 
 		// wipe the drawing surface clear
 		glClearColor(.5f, .5f, .5f, 1.0f);
@@ -207,16 +196,33 @@ int main(void)
 
 		glUseProgram(shader_programme);
 
-		glUniformMatrix4fv(glGetUniformLocation(shader_programme, "model"), 1, GL_TRUE, model);
+		glUniformMatrix4fv(glGetUniformLocation(shader_programme, "model"), 1, GL_FALSE, model);
+		glUniformMatrix4fv(glGetUniformLocation(shader_programme, "view"), 1, GL_FALSE, view);
+		glUniformMatrix4fv(glGetUniformLocation(shader_programme, "proj"), 1, GL_FALSE, projection);
+		PrintMatrix4(projection, 16);
+		//for (int i = 0; i < 3; i++)
+		//{
+		//	cout << camera.cam_pos[i] << " || ";
+		//}
+		//cout << endl;
+
+		//if (camera.cam_moved)
+		//{
+		//	view = camera.GetViewMatrix();
+		//	glUniformMatrix4fv(glGetUniformLocation(shader_programme, "view"), 1, GL_FALSE, view);
+		//	camera.cam_moved = false;
+		//}
 
 		glBindVertexArray(vao);
 		// draw points 0-3 from the currently bound VAO with current in-use shader
+
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		// update other events like input handling
+
 		glfwPollEvents();
+
 		// put the stuff we've been drawing onto the display
 		glfwSwapBuffers(window);
-		GetWindowInput(window);
 	}
 
 	glfwTerminate();
@@ -269,6 +275,39 @@ void GetWindowInput(GLFWwindow* window)
 	if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_ESCAPE))
 	{
 		glfwSetWindowShouldClose(window, 1);
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_A)) {
+		camera.cam_pos[0] -= camera.cam_speed * deltaTime;
+		camera.cam_moved = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_D)) {
+		camera.cam_pos[0] += camera.cam_speed * deltaTime;
+		camera.cam_moved = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_PAGE_UP)) {
+		camera.cam_pos[1] += camera.cam_speed * deltaTime;
+		camera.cam_moved = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_PAGE_DOWN)) {
+		camera.cam_pos[1] -= camera.cam_speed * deltaTime;
+		camera.cam_moved = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_W)) {
+		camera.cam_pos[2] -= camera.cam_speed * deltaTime;
+		camera.cam_moved = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_S)) {
+		camera.cam_pos[2] += camera.cam_speed * deltaTime;
+		camera.cam_moved = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_LEFT)) {
+		camera.cam_yaw += camera.cam_yaw_speed * deltaTime;
+		camera.cam_moved = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_RIGHT)) {
+		camera.cam_yaw -= camera.cam_yaw_speed * deltaTime;
+		camera.cam_moved = true;
 	}
 }
 
